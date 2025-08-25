@@ -4,9 +4,11 @@ import { IUser } from "../user/user.interface";
 import { User } from "../user/user.model";
 import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs";
-import { generateToken } from "../../utils/jwt";
-import { envVars } from "../../config/env";
-import { createUserToken } from "../../utils/userToken";
+import {
+    createNewAccessTokenWithRefreshToken,
+    createUserToken,
+} from "../../utils/userToken";
+
 
 const credentialsLogin = async (payload: Partial<IUser>) => {
     const isUserExist = await User.findOne({ email: payload.email });
@@ -21,25 +23,13 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
         throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized");
     }
 
-    // const jwtPayload = {
-    //     userId: isUserExist._id,
-    //     email: isUserExist.email,
-    //     role: isUserExist.role,
-    // };
+    const jwtPayload = {
+        userId: isUserExist._id,
+        email: isUserExist.email,
+        role: isUserExist.role,
+    };
 
-    // const accessToken = generateToken(
-    //     jwtPayload,
-    //     envVars.JWT_ACCESS_SECRET,
-    //     envVars.JWT_ACCESS_EXPIRES
-    // );
-
-    // const refreshToken = generateToken(
-    //     jwtPayload,
-    //     envVars.JWT_REFRESH_SECRET,
-    //     envVars.JWT_REFRESH_EXPIRES
-    // );
-
-    const userToken = createUserToken(payload);
+    const userToken = createUserToken(jwtPayload);
 
     const { password: pass, ...rest } = isUserExist.toObject();
 
@@ -50,6 +40,12 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
     };
 };
 
+const getNewAccessToken = async (refreshToken: string) => {
+    const accessToken = createNewAccessTokenWithRefreshToken(refreshToken);
+    return accessToken;
+};
+
 export const AuthServices = {
     credentialsLogin,
+    getNewAccessToken,
 };

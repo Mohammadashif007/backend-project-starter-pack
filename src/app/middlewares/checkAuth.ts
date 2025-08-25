@@ -19,6 +19,7 @@ export const checkAuth =
             accessToken,
             envVars.JWT_ACCESS_SECRET
         ) as JwtPayload;
+        
         if (!authRoles.includes(verifiedToken.role)) {
             throw new AppError(
                 httpStatus.BAD_REQUEST,
