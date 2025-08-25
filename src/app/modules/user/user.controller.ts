@@ -4,6 +4,9 @@ import { UserServices } from "./user.service";
 import httpStatus from "http-status-codes";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
+import { JwtPayload } from "jsonwebtoken";
+import { envVars } from "../../config/env";
+import { verifyToken } from "../../utils/jwt";
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
     const result = await UserServices.createUser(req.body);
@@ -17,7 +20,8 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
     const result = await UserServices.getAllUsers();
-    res.status(httpStatus.OK).json({
+    sendResponse(res, {
+        statusCode: httpStatus.CREATED,
         success: true,
         message: "All users retrieve successfully",
         data: result.data,
@@ -25,7 +29,30 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const updateUser = catchAsync(async (req: Request, res: Response) => {
+    const token = req.headers.authorization;
+
+    const verifiedToken = verifyToken(
+        token as string,
+        envVars.JWT_ACCESS_SECRET
+    ) as JwtPayload;
+    const userId = req.params.id;
+    const userInfo = req.body;
+    const result = await UserServices.updateUser(
+        userId,
+        userInfo,
+        verifiedToken
+    );
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: " Users updated successfully",
+        data: result,
+    });
+});
+
 export const UserControllers = {
     createUser,
     getAllUsers,
+    updateUser,
 };

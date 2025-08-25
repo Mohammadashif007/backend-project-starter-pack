@@ -3,6 +3,8 @@ import { IUser } from "../user/user.interface";
 import { User } from "../user/user.model";
 import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs";
+import { generateToken } from "../../utils/jwt";
+import { envVars } from "../../config/env";
 
 const credentialsLogin = async (payload: Partial<IUser>) => {
     const isUserExist = await User.findOne({ email: payload.email });
@@ -17,8 +19,16 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
         throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized");
     }
 
-    return {
+    const jwtPayload = {
+        userId: isUserExist._id,
         email: isUserExist.email,
+        role: isUserExist.role,
+    };
+
+    const accessToken = generateToken(jwtPayload, envVars.JWT_ACCESS_SECRET, envVars.JWT_ACCESS_EXPIRES)
+
+    return {
+        accessToken
     };
 };
 
