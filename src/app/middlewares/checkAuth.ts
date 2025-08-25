@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import AppError from "../errorHelpers/AppError";
 import httpStatus from "http-status-codes";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../config/env";
+import { verifyToken } from "../utils/jwt";
 
 export const checkAuth =
     (...authRoles: string[]) =>
@@ -14,7 +15,7 @@ export const checkAuth =
                 "Access token does not exists"
             );
         }
-        const verifiedToken = jwt.verify(
+        const verifiedToken = verifyToken(
             accessToken,
             envVars.JWT_ACCESS_SECRET
         ) as JwtPayload;
@@ -24,5 +25,6 @@ export const checkAuth =
                 "You are not authorized!"
             );
         }
+        req.user = verifiedToken;
         next();
     };
