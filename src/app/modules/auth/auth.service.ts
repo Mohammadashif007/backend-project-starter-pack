@@ -8,7 +8,8 @@ import {
     createNewAccessTokenWithRefreshToken,
     createUserToken,
 } from "../../utils/userToken";
-
+import { JwtPayload } from "jsonwebtoken";
+import { envVars } from "../../config/env";
 
 const credentialsLogin = async (payload: Partial<IUser>) => {
     const isUserExist = await User.findOne({ email: payload.email });
@@ -23,13 +24,8 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
         throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized");
     }
 
-    const jwtPayload = {
-        userId: isUserExist._id,
-        email: isUserExist.email,
-        role: isUserExist.role,
-    };
-
-    const userToken = createUserToken(jwtPayload);
+    
+    const userToken = createUserToken(isUserExist);
 
     const { password: pass, ...rest } = isUserExist.toObject();
 
@@ -45,7 +41,35 @@ const getNewAccessToken = async (refreshToken: string) => {
     return accessToken;
 };
 
+const resetPassword = async (
+    oldPassword: string,
+    newPassword: string,
+    decodedToken: JwtPayload
+) => {
+    const user = await User.findById(decodedToken.userId);
+    if (!user) {
+        throw new AppError(httpStatus.BAD_REQUEST, "User not found from service");
+    }
+    const isOldPasswordMatch = await bcrypt.compare(
+        oldPassword,
+        user?.password as string
+    );
+    if (!isOldPasswordMatch) {
+        throw new AppError(
+            httpStatus.UNAUTHORIZED,
+            "Old Password does not match"
+        );
+    }
+
+    user.password = await bcrypt.hash(
+        newPassword,
+        Number(envVars.BCRYPT_SALT_ROUND)
+    );
+    user.save();
+};
+
 export const AuthServices = {
     credentialsLogin,
     getNewAccessToken,
+    resetPassword,
 };

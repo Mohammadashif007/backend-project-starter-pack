@@ -7,11 +7,14 @@ import { generateToken, verifyToken } from "./jwt";
 import httpStatus from "http-status-codes";
 
 export const createUserToken = (user: Partial<IUser>) => {
+    console.log("User", user);
     const jwtPayload = {
         userId: user._id,
         email: user.email,
         role: user.role,
     };
+
+    console.log(jwtPayload);
 
     const accessToken = generateToken(
         jwtPayload,
@@ -31,7 +34,9 @@ export const createUserToken = (user: Partial<IUser>) => {
     };
 };
 
-export const createNewAccessTokenWithRefreshToken = async(refreshToken: string) => {
+export const createNewAccessTokenWithRefreshToken = async (
+    refreshToken: string
+) => {
     const verifiedToken = verifyToken(
         refreshToken,
         envVars.JWT_REFRESH_SECRET
