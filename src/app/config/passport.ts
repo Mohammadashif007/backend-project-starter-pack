@@ -1,16 +1,52 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import passport from "passport";
 import {
-    Strategy as googleStrategy,
+    Strategy as GoogleStrategy,
     Profile,
     VerifyCallback,
 } from "passport-google-oauth20";
 import { envVars } from "./env";
 import { User } from "../modules/user/user.model";
 import { Role } from "../modules/user/user.interface";
+import { Strategy as LocalStrategy } from "passport-local";
+import bcrypt from "bcryptjs";
 
 passport.use(
-    new googleStrategy(
+    new LocalStrategy(
+        {
+            usernameField: "email",
+            passwordField: "password",
+        },
+        async (email: string, password: string, done) => {
+            try {
+                const isUserExist = await User.findOne({ email });
+                if (!isUserExist) {
+                    return done(null, false, {
+                        message: "User does not exist",
+                    });
+                }
+
+                const isPasswordMatch = await bcrypt.compare(
+                    password as string,
+                    isUserExist.password as string
+                );
+
+                if (!isPasswordMatch) {
+                    return done(null, false, {
+                        message: "Password dose not match",
+                    });
+                }
+
+                done(null, isUserExist);
+            } catch (error) {
+                done(error);
+            }
+        }
+    )
+);
+
+passport.use(
+    new GoogleStrategy(
         {
             clientID: envVars.GOOGLE_CLIENT_ID,
             clientSecret: envVars.GOOGLE_CLIENT_SECRET,
