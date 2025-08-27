@@ -7,14 +7,12 @@ import { generateToken, verifyToken } from "./jwt";
 import httpStatus from "http-status-codes";
 
 export const createUserToken = (user: Partial<IUser>) => {
-    console.log("User", user);
     const jwtPayload = {
         userId: user._id,
         email: user.email,
         role: user.role,
     };
 
-    console.log(jwtPayload);
 
     const accessToken = generateToken(
         jwtPayload,
