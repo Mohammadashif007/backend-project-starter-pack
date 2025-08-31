@@ -11,6 +11,7 @@ import { Role } from "../modules/user/user.interface";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 
+// ! credential login with passport
 passport.use(
     new LocalStrategy(
         {
@@ -19,26 +20,34 @@ passport.use(
         },
         async (email: string, password: string, done) => {
             try {
-                const isUserExist = await User.findOne({ email });
-                if (!isUserExist) {
+                const user = await User.findOne({ email });
+                if (!user) {
                     return done(null, false, {
-                        message: "User does not exist",
+                        message: "User dose not exist",
                     });
                 }
+                if (!user) {
+                    return done("User dose not exist");
+                }
+
+               const isGoogleAuthenticated = user.auths.some(providerObjects => providerObjects.provider == "google");
+                
+               if(isGoogleAuthenticated){
+                return done(null, false, {message: "You are google authenticate. At set a password then login with credentials"})
+               }
 
                 const isPasswordMatch = await bcrypt.compare(
                     password as string,
-                    isUserExist.password as string
+                    user.password as string
                 );
 
-                if (!isPasswordMatch) {
-                    return done(null, false, {
-                        message: "Password dose not match",
-                    });
+                if(!isPasswordMatch){
+                    return done(null, false, {message: "Password dose not match"})
                 }
+                return done(null, user)
 
-                done(null, isUserExist);
             } catch (error) {
+                console.log(error);
                 done(error);
             }
         }
@@ -63,7 +72,7 @@ passport.use(
                 if (!email) {
                     return done(null, false, { message: "Email not found" });
                 }
-                let user = await User.findOne({ email: email });
+                let user = await User.findOne({ email });
                 if (!user) {
                     user = await User.create({
                         email,
@@ -71,7 +80,12 @@ passport.use(
                         picture: profile.photos?.[0].value,
                         role: Role.USER,
                         isVerified: true,
-                        auths: [{ provider: "google", providerId: profile.id }],
+                        auths: [
+                            {
+                                provider: "google",
+                                providerId: profile.id,
+                            },
+                        ],
                     });
                 }
                 return done(null, user);
@@ -92,6 +106,7 @@ passport.deserializeUser(async (id: string, done: any) => {
         const user = await User.findById(id);
         done(null, user);
     } catch (error) {
+        console.log(error);
         done(error);
     }
 });
